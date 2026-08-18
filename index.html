@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telephely Térkép - Ercsi</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #header {
+            background: #1a73e8;
+            color: white;
+            padding: 15px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #header h1 {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        #controls {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dadce0;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #fileInput, #cameraInput {
+            display: none;
+        }
+
+        .btn {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn:hover {
+            background: #1557b0;
+        }
+
+        .btn:disabled {
+            background: #dadce0;
+            cursor: not-allowed;
+        }
+
+        .btn.active {
+            background: #34a853;
+        }
+
+        .btn.error {
+            background: #ea4335;
+        }
+
+        .btn.error:hover {
+            background: #c5221f;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 5px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .btn-group .btn {
+            border-radius: 0;
+            border-right: 1px solid #dadce0;
+        }
+
+        .btn-group .btn:last-child {
+            border-right: none;
+        }
+
+        .btn-group .btn.active {
+            background: #1a73e8;
+        }
+
+        #dropZone {
+            border: 2px dashed #dadce0;
+            border-radius: 4px;
+            padding: 10px 20px;
+            text-align: center;
+            color: #5f6368;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #dropZone:hover, #dropZone.dragover {
+            border-color: #1a73e8;
+            background: #e8f0fe;
+            color: #1a73e8;
+        }
+
+        #status {
+            color: #5f6368;
+            font-size: 14px;
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+            cursor: default;
+        }
+
+        #map.placing-mode {
+            cursor: crosshair;
+        }
+
+        .photo-popup {
+            max-width: 400px;
+        }
+
+        .photo-popup img {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .photo-popup .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .photo-popup .badge.general {
+            background: #e8f0fe;
+            color: #1a73e8;
+        }
+
+        .photo-popup .badge.error {
+            background: #fce8e6;
+            color: #ea4335;
+        }
+
+        .photo-popup h3 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            color: #202124;
+        }
+
+        .photo-popup p {
+            font-size: 13px;
+            color: #5f6368;
+            margin: 4px 0;
+        }
+
+        .photo-popup .description {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-style: italic;
+            color: #202124;
+        }
+
+        .photo-popup .controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .photo-popup .controls button {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .photo-popup .controls .btn-delete {
+            background: #ea4335;
+            color: white;
+        }
+
+        .direction-control {
+            margin-top: 10px;
+        }
+
+        .direction-slider {
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        #mainContainer {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        #photoList {
+            width: 300px;
+            background: white;
+            border-left: 1px solid #dadce0;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .photo-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .photo-item:hover {
+            background: #f8f9fa;
+        }
+
+        .photo-item.no-gps {
+            border-color: #fbbc04;
+            background: #fef7e0;
+        }
+
+        .photo-item.selected {
+            border-color: #1a73e8;
+            background: #e8f0fe;
+        }
+
+        .photo-item.type-error {
+            border-left: 4px solid #ea4335;
+        }
+
+        .photo-item.type-general {
+            border-left: 4px solid #1a73e8;
+        }
+
+        .photo-item img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+
+        .photo-item-info {
+            flex: 1;
+            font-size: 13px;
+        }
+
+        .photo-item-info strong {
+            display: block;
+            color: #202124;
+            margin-bottom: 4px;
+        }
+
+        .photo-item-info .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+            margin-right: 5px;
+        }
+
+        .badge.gps {
+            background: #e8f5e9;
+            color: #1e8e3e;
+        }
+
+        .badge.no-gps {
+            background: #fef7e0;
+            color: #f9ab00;
+        }
+
+        .badge.type-general {
+            background: #e8f0fe;
+            color: #1a73e8;
+        }
+
+        .badge.type-error {
+            background: #fce8e6;
+            color: #ea4335;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 15px;
+            color: #202124;
+        }
+
+        .modal-content input, .modal-content textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-family: inherit;
+        }
+
+        .modal-content textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .instructions {
+            background: #e8f0fe;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #1a73e8;
+        }
+
+        .instructions h3 {
+            color: #1a73e8;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            font-size: 13px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+            color: #5f6368;
+        }
+
+        @media (max-width: 768px) {
+            #controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            #photoList {
+                display: none;
+            }
+
+            .btn-group {
+                width: 100%;
+            }
+
+            .btn-group .btn {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>📍 Telephely Térkép - Ercsi, Cukorgyári ltp. 47</h1>
+    </div>
+
+    <div id="controls">
+        <div class="btn-group">
+            <button class="btn active" onclick="setLayer('all')">📊 Összes</button>
+            <button class="btn" onclick="setLayer('general')">🔵 Általános</button>
+            <button class="btn" onclick="setLayer('error')">🔴 Hibák</button>
+        </div>
+
+        <button class="btn" onclick="takePhoto('general')">
+            📷 Általános fotó
+        </button>
+        <button class="btn error" onclick="takePhoto('error')">
+            🔴 Hiba fotó
+        </button>
+
+        <div id="dropZone">
+            📁 Vagy húzd ide a fotókat
+        </div>
+        <input type="file" id="fileInput" multiple accept="image/*">
+        <input type="file" id="cameraInput" accept="image/*" capture="environment">
+
+        <button class="btn" id="placeBtn" onclick="togglePlacingMode()" disabled>
+            📍 Fotó elhelyezése
+        </button>
+        <button class="btn" id="clearBtn" onclick="clearPhotos()" disabled>
+            🗑️ Összes törlése
+        </button>
+        <button class="btn" id="exportBtn" onclick="exportData()" disabled>
+            💾 JSON letöltése
+        </button>
+        <div id="status">Nincs fotó feltöltve</div>
+    </div>
+
+    <div id="mainContainer">
+        <div id="map"></div>
+        <div id="photoList">
+            <div class="instructions">
+                <h3>📖 Használat</h3>
+                <ol>
+                    <li><strong>Fotózás:</strong> "📷 Általános" vagy "🔴 Hiba"</li>
+                    <li><strong>GPS:</strong> Automatikusan kinyeri</li>
+                    <li><strong>Leírás:</strong> Adj hozzá megjegyzést</li>
+                    <li><strong>Layer:</strong> Váltás a gombokon</li>
+                    <li><strong>Szerkesztés:</strong> Kattints a marker-re</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leírás modal -->
+    <div id="descriptionModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">📝 Leírás hozzáadása</h3>
+            <textarea id="descriptionInput" placeholder="Pl: Gép X hibakódja: E123 vagy Bejárat északi oldal"></textarea>
+            <div class="modal-buttons">
+                <button class="btn" onclick="cancelDescription()">Mégse</button>
+                <button class="btn" onclick="saveDescription()">Mentés</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+    <script>
+        let map;
+        let photos = [];
+        let markers = [];
+        let wedges = [];
+        let infoWindows = [];
+        let placingMode = false;
+        let selectedPhotoForPlacing = null;
+        let currentLayer = 'all';
+        let pendingPhoto = null;
+        let currentHeading = 0;
+
+        const SITE_CENTER = { lat: 47.248355, lng: 18.872946 };
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: SITE_CENTER,
+                zoom: 19,
+                mapTypeId: 'satellite',
+                tilt: 0,
+                mapId: 'DEMO_MAP_ID'
+            });
+
+            addSimpleMarker(SITE_CENTER, 'Cukorgyári ltp. 47', '#FF0000', 8);
+
+            map.addListener('click', (e) => {
+                if (placingMode && selectedPhotoForPlacing) {
+                    placePhotoAtLocation(selectedPhotoForPlacing, e.latLng);
+                }
+            });
+
+            // Iránytű figyelés
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+                window.addEventListener('deviceorientation', handleOrientation, true);
+            }
+        }
+
+        function handleOrientation(event) {
+            if (event.alpha !== null) {
+                currentHeading = event.alpha;
+            } else if (event.webkitCompassHeading !== undefined) {
+                currentHeading = event.webkitCompassHeading;
+            }
+        }
+
+        function addSimpleMarker(position, title, color, scale) {
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: title,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: scale,
+                    fillColor: color,
+                    fillOpacity: 0.8,
+                    strokeColor: '#FFFFFF',
+                    strokeWeight: 2
+                }
+            });
+            return marker;
+        }
+
+        function setLayer(layer) {
+            currentLayer = layer;
+
+            // Gombok frissítése
+            document.querySelectorAll('.btn-group .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Markerek szűrése
+            photos.forEach(photo => {
+                if (photo.marker) {
+                    const visible = layer === 'all' || photo.type === layer;
+                    photo.marker.setVisible(visible);
+                    if (photo.wedge) {
+                        photo.wedge.setVisible(visible);
+                    }
+                }
+            });
+
+            updatePhotoList();
+        }
+
+        function takePhoto(type) {
+            // Ellenőrizzük a GPS engedélyt
+            if (!navigator.geolocation) {
+                alert('A böngésző nem támogatja a GPS-t!');
+                return;
+            }
+
+            // Kamera input trigger
+            const input = document.getElementById('cameraInput');
+            input.setAttribute('data-type', type);
+            input.click();
+        }
+
+        document.getElementById('cameraInput').addEventListener('change', async function(e) {
+            if (e.target.files.length === 0) return;
+
+            const file = e.target.files[0];
+            const type = e.target.getAttribute('data-type');
+
+            // GPS pozíció lekérése
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const coords = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    // Kép beolvasása
+                    const reader = new FileReader();
+                    reader.onload = async (event) => {
+                        const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+                        pendingPhoto = {
+                            id: Date.now() + '_' + Math.random(),
+                            name: file.name,
+                            dataUrl: event.target.result,
+                            coords: coords,
+                            direction: currentHeading || 0,
+                            dateTime: timestamp,
+                            type: type,
+                            description: ''
+                        };
+
+                        // Leírás modal megnyitása
+                        document.getElementById('modalTitle').textContent = 
+                            type === 'error' ? '🔴 Hiba leírása' : '📝 Leírás hozzáadása';
+                        document.getElementById('descriptionInput').value = '';
+                        document.getElementById('descriptionModal').classList.add('show');
+                    };
+                    reader.readAsDataURL(file);
+                },
+                (error) => {
+                    alert('GPS hiba: ' + error.message + '\n\nHelyezd el manuálisan a fotót!');
+                    // Fallback: manuális elhelyezés
+                    processFilesManually([file], type);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+
+            // Input reset
+            e.target.value = '';
+        });
+
+        function saveDescription() {
+            const description = document.getElementById('descriptionInput').value.trim();
+            pendingPhoto.description = description;
+
+            photos.push(pendingPhoto);
+            addPhotoToMap(pendingPhoto);
+
+            document.getElementById('descriptionModal').classList.remove('show');
+            pendingPhoto = null;
+
+            updateUI();
+            updatePhotoList();
+        }
+
+        function cancelDescription() {
+            document.getElementById('descriptionModal').classList.remove('show');
+            pendingPhoto = null;
+        }
+
+        async function processFilesManually(files, type = 'general') {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+
+                const reader = new FileReader();
+                const dataUrl = await new Promise((resolve) => {
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+
+                const exif = await getExifData(file);
+                const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+
+                const photo = {
+                    id: Date.now() + '_' + i,
+                    name: file.name,
+                    dataUrl: dataUrl,
+                    coords: exif.coords,
+                    direction: exif.direction || 0,
+                    dateTime: exif.dateTime || timestamp,
+                    type: type,
+                    description: ''
+                };
+
+                photos.push(photo);
+
+                if (photo.coords) {
+                    addPhotoToMap(photo);
+                }
+            }
+
+            updateUI();
+            updatePhotoList();
+        }
+
+        function getExifData(file) {
+            return new Promise((resolve) => {
+                EXIF.getData(file, function() {
+                    const lat = EXIF.getTag(this, 'GPSLatitude');
+                    const latRef = EXIF.getTag(this, 'GPSLatitudeRef');
+                    const lon = EXIF.getTag(this, 'GPSLongitude');
+                    const lonRef = EXIF.getTag(this, 'GPSLongitudeRef');
+                    const direction = EXIF.getTag(this, 'GPSImgDirection');
+                    const dateTime = EXIF.getTag(this, 'DateTime');
+
+                    let coords = null;
+                    if (lat && lon && !isNaN(lat[0]) && !isNaN(lon[0])) {
+                        coords = {
+                            lat: convertDMSToDD(lat, latRef),
+                            lng: convertDMSToDD(lon, lonRef)
+                        };
+                    }
+
+                    resolve({
+                        coords: coords,
+                        direction: direction || 0,
+                        dateTime: dateTime || null
+                    });
+                });
+            });
+        }
+
+        function convertDMSToDD(dms, ref) {
+            const degrees = dms[0];
+            const minutes = dms[1];
+            const seconds = dms[2];
+
+            let dd = degrees + minutes / 60 + seconds / 3600;
+
+            if (ref === 'S' || ref === 'W') {
+                dd = dd * -1;
+            }
+
+            return dd;
+        }
+
+        function drawWedge(position, direction, type, map) {
+            const radius = 0.00008;
+            const angle = 45;
+
+            const startAngle = direction - angle / 2;
+            const endAngle = direction + angle / 2;
+
+            const path = [position];
+
+            for (let i = startAngle; i <= endAngle; i += 5) {
+                const rad = (i * Math.PI) / 180;
+                const lat = position.lat + radius * Math.cos(rad);
+                const lng = position.lng + radius * Math.sin(rad) / Math.cos(position.lat * Math.PI / 180);
+                path.push({ lat, lng });
+            }
+
+            path.push(position);
+
+            const color = type === 'error' ? '#ea4335' : '#FFD700';
+
+            const wedge = new google.maps.Polygon({
+                paths: path,
+                strokeColor: color,
+                strokeOpacity: 0.6,
+                strokeWeight: 1,
+                fillColor: color,
+                fillOpacity: 0.2,
+                map: map,
+                visible: currentLayer === 'all' || currentLayer === type
+            });
+
+            return wedge;
+        }
+
+        function addPhotoToMap(photo) {
+            if (!photo.coords) {
+                return;
+            }
+
+            const markerColor = photo.type === 'error' ? '#ea4335' : '#4285F4';
+
+            const marker = new google.maps.Marker({
+                position: photo.coords,
+                map: map,
+                title: photo.name,
+                draggable: true,
+                visible: currentLayer === 'all' || currentLayer === photo.type,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: markerColor,
+                    fillOpacity: 0.9,
+                    strokeColor: '#FFFFFF',
+                    strokeWeight: 2
+                }
+            });
+
+            const wedge = drawWedge(photo.coords, photo.direction, photo.type, map);
+
+            const infoWindow = new google.maps.InfoWindow();
+
+            function updateInfoWindow() {
+                const directionValue = Math.round(photo.direction);
+                const badgeClass = photo.type === 'error' ? 'error' : 'general';
+                const badgeText = photo.type === 'error' ? '🔴 HIBA' : '🔵 ÁLTALÁNOS';
+
+                infoWindow.setContent(`
+                    <div class="photo-popup">
+                        <img src="${photo.dataUrl}" alt="${photo.name}">
+                        <div class="badge ${badgeClass}">${badgeText}</div>
+                        <h3>${photo.name}</h3>
+                        ${photo.description ? `<div class="description">📝 ${photo.description}</div>` : ''}
+                        <p><strong>📅 Időpont:</strong> ${photo.dateTime}</p>
+                        <p><strong>📍 Koordináták:</strong> ${photo.coords.lat.toFixed(6)}, ${photo.coords.lng.toFixed(6)}</p>
+                        <p><strong>🧭 Irány:</strong> <span id="direction-${photo.id}">${directionValue}°</span></p>
+                        <div class="direction-control">
+                            <label><strong>Fotózási irány:</strong></label>
+                            <input type="range" class="direction-slider" min="0" max="360" value="${directionValue}" 
+                                   oninput="updatePhotoDirectionLive('${photo.id}', this.value)">
+                        </div>
+                        <div class="controls">
+                            <button class="btn-delete" onclick="deletePhoto('${photo.id}')">🗑️ Törlés</button>
+                        </div>
+                    </div>
+                `);
+            }
+
+            marker.addListener('click', () => {
+                infoWindows.forEach(iw => iw.close());
+                updateInfoWindow();
+                infoWindow.open(map, marker);
+            });
+
+            marker.addListener('dragend', (e) => {
+                photo.coords = {
+                    lat: e.latLng.lat(),
+                    lng: e.latLng.lng()
+                };
+
+                if (photo.wedge) {
+                    photo.wedge.setMap(null);
+                    photo.wedge = drawWedge(photo.coords, photo.direction, photo.type, map);
+                }
+
+                updateInfoWindow();
+                updatePhotoList();
+            });
+
+            photo.marker = marker;
+            photo.wedge = wedge;
+            photo.infoWindow = infoWindow;
+
+            markers.push(marker);
+            infoWindows.push(infoWindow);
+            if (wedge) wedges.push(wedge);
+        }
+
+        function updatePhotoDirectionLive(photoId, newDirection) {
+            const photo = photos.find(p => p.id === photoId);
+            if (!photo) return;
+
+            photo.direction = parseFloat(newDirection);
+
+            // Tölcsér frissítése
+            if (photo.wedge) {
+                photo.wedge.setMap(null);
+                photo.wedge = drawWedge(photo.coords, photo.direction, photo.type, map);
+            }
+
+            // Popup szöveg frissítése
+            const directionSpan = document.getElementById('direction-' + photoId);
+            if (directionSpan) {
+                directionSpan.textContent = Math.round(newDirection) + '°';
+            }
+        }
+
+        function placePhotoAtLocation(photo, latLng) {
+            photo.coords = {
+                lat: latLng.lat(),
+                lng: latLng.lng()
+            };
+
+            addPhotoToMap(photo);
+
+            placingMode = false;
+            selectedPhotoForPlacing = null;
+            document.getElementById('map').classList.remove('placing-mode');
+            document.getElementById('placeBtn').classList.remove('active');
+            document.getElementById('placeBtn').textContent = '📍 Fotó elhelyezése';
+
+            updateUI();
+            updatePhotoList();
+        }
+
+        function togglePlacingMode() {
+            const photosWithoutGPS = photos.filter(p => !p.coords);
+
+            if (photosWithoutGPS.length === 0) {
+                alert('Minden fotónak van már helye!');
+                return;
+            }
+
+            if (!placingMode) {
+                selectedPhotoForPlacing = photosWithoutGPS[0];
+                placingMode = true;
+                document.getElementById('map').classList.add('placing-mode');
+                document.getElementById('placeBtn').classList.add('active');
+                document.getElementById('placeBtn').textContent = `📍 Helyezd el: ${selectedPhotoForPlacing.name}`;
+                alert(`Kattints a térképre, hogy elhelyezd: ${selectedPhotoForPlacing.name}`);
+            } else {
+                placingMode = false;
+                selectedPhotoForPlacing = null;
+                document.getElementById('map').classList.remove('placing-mode');
+                document.getElementById('placeBtn').classList.remove('active');
+                document.getElementById('placeBtn').textContent = '📍 Fotó elhelyezése';
+            }
+        }
+
+        function deletePhoto(photoId) {
+            if (!confirm('Biztosan törölni szeretnéd ezt a fotót?')) return;
+
+            const index = photos.findIndex(p => p.id === photoId);
+            if (index === -1) return;
+
+            const photo = photos[index];
+
+            if (photo.marker) photo.marker.setMap(null);
+            if (photo.wedge) photo.wedge.setMap(null);
+            if (photo.infoWindow) photo.infoWindow.close();
+
+            photos.splice(index, 1);
+
+            updateUI();
+            updatePhotoList();
+        }
+
+        function updatePhotoList() {
+            const listEl = document.getElementById('photoList');
+            const instructionsEl = listEl.querySelector('.instructions');
+            listEl.innerHTML = '';
+            if (instructionsEl) listEl.appendChild(instructionsEl);
+
+            const header = document.createElement('h3');
+            header.style.marginBottom = '15px';
+            header.textContent = '📷 Fotók';
+            listEl.appendChild(header);
+
+            const filteredPhotos = currentLayer === 'all' 
+                ? photos 
+                : photos.filter(p => p.type === currentLayer);
+
+            filteredPhotos.forEach(photo => {
+                const item = document.createElement('div');
+                item.className = 'photo-item type-' + photo.type + (!photo.coords ? ' no-gps' : '');
+                item.innerHTML = `
+                    <img src="${photo.dataUrl}" alt="${photo.name}">
+                    <div class="photo-item-info">
+                        <strong>${photo.name}</strong>
+                        <span class="badge type-${photo.type}">
+                            ${photo.type === 'error' ? '🔴 Hiba' : '🔵 Általános'}
+                        </span>
+                        <span class="badge ${photo.coords ? 'gps' : 'no-gps'}">
+                            ${photo.coords ? '✓ GPS' : '⚠ Nincs GPS'}
+                        </span>
+                    </div>
+                `;
+
+                item.onclick = () => {
+                    if (photo.coords && photo.marker) {
+                        map.panTo(photo.coords);
+                        map.setZoom(20);
+                        google.maps.event.trigger(photo.marker, 'click');
+                    } else {
+                        selectedPhotoForPlacing = photo;
+                        placingMode = true;
+                        document.getElementById('map').classList.add('placing-mode');
+                        document.getElementById('placeBtn').classList.add('active');
+                        document.getElementById('placeBtn').textContent = `📍 Helyezd el: ${photo.name}`;
+                        alert(`Kattints a térképre, hogy elhelyezd: ${photo.name}`);
+                    }
+                };
+
+                listEl.appendChild(item);
+            });
+        }
+
+        function updateUI() {
+            const status = document.getElementById('status');
+            const clearBtn = document.getElementById('clearBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            const placeBtn = document.getElementById('placeBtn');
+
+            const withGPS = photos.filter(p => p.coords).length;
+            const withoutGPS = photos.length - withGPS;
+            const generalCount = photos.filter(p => p.type === 'general').length;
+            const errorCount = photos.filter(p => p.type === 'error').length;
+
+            status.textContent = `📷 ${photos.length} fotó (🔵 ${generalCount} | 🔴 ${errorCount} | GPS: ${withGPS}/${photos.length})`;
+
+            clearBtn.disabled = photos.length === 0;
+            exportBtn.disabled = photos.length === 0;
+            placeBtn.disabled = withoutGPS === 0;
+
+            if (withGPS > 0) {
+                const bounds = new google.maps.LatLngBounds();
+                photos.forEach(p => {
+                    if (p.coords) bounds.extend(p.coords);
+                });
+                map.fitBounds(bounds);
+            }
+        }
+
+        function clearPhotos() {
+            if (!confirm('Biztosan törölni szeretnéd az összes fotót?')) return;
+
+            photos.forEach(p => {
+                if (p.marker) p.marker.setMap(null);
+                if (p.wedge) p.wedge.setMap(null);
+                if (p.infoWindow) p.infoWindow.close();
+            });
+
+            photos = [];
+            markers = [];
+            wedges = [];
+            infoWindows = [];
+
+            updateUI();
+            updatePhotoList();
+        }
+
+        function exportData() {
+            const data = photos.map(p => ({
+                name: p.name,
+                type: p.type,
+                description: p.description,
+                coords: p.coords,
+                direction: p.direction,
+                dateTime: p.dateTime
+            }));
+
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `telephely_fotok_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        // Drag & Drop
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            processFilesManually(e.dataTransfer.files, 'general');
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            processFilesManually(e.target.files, 'general');
+        });
+    </script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCP93NrYiTMh-Drp56L0-QijhjEa2WB_ig&callback=initMap" async defer></script>
+</body>
+</html>
