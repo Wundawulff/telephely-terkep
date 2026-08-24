@@ -9,5 +9,16 @@
     "direction": 0,
     "description": "elromlott?",
     "timestamp": "2026-08-24 10:09:48"
+  },
+  {
+    "name": "foto_2026-08-24T10-24-01.jpg",
+    "type": "general",
+    "coords": {
+      "lat": 47.2485948,
+      "lng": 18.8734405
+    },
+    "direction": 0,
+    "description": "danucem",
+    "timestamp": "2026-08-24 10:24:01"
   }
 ]
