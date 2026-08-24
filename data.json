@@ -11,17 +11,6 @@
     "timestamp": "2026-08-24 10:24:01"
   },
   {
-    "name": "foto_2026-08-24T11-14-18.jpg",
-    "type": "error",
-    "coords": {
-      "lat": 47.2485963,
-      "lng": 18.8733756
-    },
-    "direction": 0,
-    "description": "uveg",
-    "timestamp": "2026-08-24 11:14:18"
-  },
-  {
     "name": "foto_2026-08-24T13-34-25.jpg",
     "type": "general",
     "coords": {
