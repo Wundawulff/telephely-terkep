@@ -20,16 +20,5 @@
     "direction": 0,
     "description": "danucem",
     "timestamp": "2026-08-24 10:24:01"
-  },
-  {
-    "name": "foto_2026-08-24T11-12-37.jpg",
-    "type": "general",
-    "coords": {
-      "lat": 47.2485985,
-      "lng": 18.8734366
-    },
-    "direction": 0,
-    "description": "ablak",
-    "timestamp": "2026-08-24 11:12:37"
   }
 ]
