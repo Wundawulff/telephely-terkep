@@ -20,5 +20,16 @@
     "direction": 0,
     "description": "elromlott?",
     "timestamp": "2026-08-24 10:09:48"
+  },
+  {
+    "name": "foto_2026-08-24T10-13-35.jpg",
+    "type": "general",
+    "coords": {
+      "lat": 47.248596,
+      "lng": 18.8733909
+    },
+    "direction": 0,
+    "description": "wpapaos",
+    "timestamp": "2026-08-24 10:13:35"
   }
 ]
