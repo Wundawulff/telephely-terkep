@@ -42,5 +42,16 @@
     "direction": 0,
     "description": "torony",
     "timestamp": "2026-08-24 13:34:25"
+  },
+  {
+    "name": "foto_2026-08-24T13-36-06.jpg",
+    "type": "general",
+    "coords": {
+      "lat": 47.2473996,
+      "lng": 18.873334
+    },
+    "direction": 0,
+    "description": "kep",
+    "timestamp": "2026-08-24 13:36:06"
   }
 ]
