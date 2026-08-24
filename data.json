@@ -1,16 +1,5 @@
 [
   {
-    "name": "foto_2026-08-24T09-57-33.jpg",
-    "type": "general",
-    "coords": {
-      "lat": 47.24859687087112,
-      "lng": 18.873392144145576
-    },
-    "direction": 0,
-    "description": "djsje",
-    "timestamp": "2026-08-24 09:57:33"
-  },
-  {
     "name": "foto_2026-08-24T10-09-48.jpg",
     "type": "error",
     "coords": {
