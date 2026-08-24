@@ -31,5 +31,16 @@
     "direction": 0,
     "description": "uveg",
     "timestamp": "2026-08-24 11:14:18"
+  },
+  {
+    "name": "foto_2026-08-24T13-34-25.jpg",
+    "type": "general",
+    "coords": {
+      "lat": 47.2466941,
+      "lng": 18.8730301
+    },
+    "direction": 0,
+    "description": "torony",
+    "timestamp": "2026-08-24 13:34:25"
   }
 ]
