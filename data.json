@@ -1,16 +1,5 @@
 [
   {
-    "name": "foto_2026-08-24T10-09-48.jpg",
-    "type": "error",
-    "coords": {
-      "lat": 47.2486003775537,
-      "lng": 18.873402468717213
-    },
-    "direction": 0,
-    "description": "elromlott? anxlasxnslan",
-    "timestamp": "2026-08-24 10:09:48"
-  },
-  {
     "name": "foto_2026-08-24T10-24-01.jpg",
     "type": "general",
     "coords": {
