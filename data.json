@@ -20,16 +20,5 @@
     "direction": 0,
     "description": "wpapaos",
     "timestamp": "2026-08-24 10:13:35"
-  },
-  {
-    "name": "foto_2026-08-24T10-13-49.jpg",
-    "type": "general",
-    "coords": {
-      "lat": 47.24859687087112,
-      "lng": 18.873392144145576
-    },
-    "direction": 0,
-    "description": "fggt",
-    "timestamp": "2026-08-24 10:13:49"
   }
 ]
