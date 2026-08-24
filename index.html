@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telephely Térkép - Ercsi (FIXED)</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCP93NrYiTMh-Drp56L0-QijhjEa2WB_ig"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        #container { display: flex; height: 100vh; }
+        #map { flex: 1; }
+
+        #sidebar {
+            width: 350px;
+            background: #f8f9fa;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        h1 { font-size: 24px; margin-bottom: 20px; color: #333; }
+
+        .controls { margin-bottom: 20px; }
+
+        .layer-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .layer-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .layer-btn.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .photo-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .photo-btn {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .photo-btn.general {
+            background: #007bff;
+            color: white;
+        }
+
+        .photo-btn.error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .photo-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .photo-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .photo-list {
+            margin-top: 20px;
+        }
+
+        .photo-item {
+            padding: 12px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid #ddd;
+        }
+
+        .photo-item.general { border-left-color: #007bff; }
+        .photo-item.error { border-left-color: #dc3545; }
+
+        .photo-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .photo-item-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .photo-item-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .badge.general { background: #007bff; color: white; }
+        .badge.error { background: #dc3545; color: white; }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%';
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            z-index: 10000;
+            display: none;
+        }
+
+        .token-info {
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #004085;
+        }
+
+        .token-btn {
+            width: 100%;
+            padding: 10px;
+            background: #ffc107;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .token-btn:hover {
+            background: #e0a800;
+        }
+
+        .debug-log {
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 11px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+        }
+
+        @media (max-width: 768px) {
+            #container { flex-direction: column; }
+            #sidebar { width: 100%; height: 40vh; }
+            #map { height: 60vh; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">⏳ Feltöltés...</div>
+
+    <div id="container">
+        <div id="map"></div>
+        <div id="sidebar">
+            <h1>📍 Telephely Térkép</h1>
+
+            <div class="controls">
+                <div class="layer-buttons">
+                    <button class="layer-btn active" data-layer="all">📊 Összes</button>
+                    <button class="layer-btn" data-layer="general">🔵 Általános</button>
+                    <button class="layer-btn" data-layer="error">🔴 Hibák</button>
+                </div>
+
+                <div class="photo-buttons" id="photoButtons">
+                    <button class="photo-btn general" onclick="takePhoto('general')">📷 Általános fotó</button>
+                    <button class="photo-btn error" onclick="takePhoto('error')">🔴 Hiba fotó</button>
+                </div>
+
+                <div class="token-info" id="tokenInfo">
+                    🔑 Token: <span id="tokenStatus">Nincs beállítva</span>
+                </div>
+                <button class="token-btn" onclick="manageToken()">🔧 Token kezelése</button>
+
+                <div class="debug-log" id="debugLog">
+                    📋 Debug log:<br>
+                </div>
+            </div>
+
+            <div class="status" id="status">
+                📷 0 fotó (🔵 0 | 🔴 0)
+            </div>
+
+            <div class="photo-list" id="photoList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Debug log funkció
+        function debugLog(message) {
+            const log = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            log.innerHTML += `[${timestamp}] ${message}<br>`;
+            log.scrollTop = log.scrollHeight;
+            console.log(`[DEBUG] ${message}`);
+        }
+
+        // ⚙️ GITHUB BEÁLLÍTÁSOK
+        const GITHUB_CONFIG = {
+            owner: 'Wundawulff',
+            repo: 'telephely-terkep',
+            branch: 'main'
+        };
+
+        // Token kezelés
+        let GITHUB_TOKEN = null;
+
+        function getToken() {
+            if (!GITHUB_TOKEN) {
+                GITHUB_TOKEN = localStorage.getItem('github_token');
+            }
+            return GITHUB_TOKEN;
+        }
+
+        function setToken(token) {
+            GITHUB_TOKEN = token;
+            localStorage.setItem('github_token', token);
+            updateTokenStatus();
+            debugLog('Token beállítva');
+        }
+
+        function clearToken() {
+            GITHUB_TOKEN = null;
+            localStorage.removeItem('github_token');
+            updateTokenStatus();
+            debugLog('Token törölve');
+        }
+
+        function updateTokenStatus() {
+            const token = getToken();
+            const statusEl = document.getElementById('tokenStatus');
+            const photoButtons = document.getElementById('photoButtons');
+
+            if (token) {
+                statusEl.textContent = '✅ Beállítva';
+                statusEl.style.color = '#155724';
+                photoButtons.style.display = 'flex';
+                debugLog('Token státusz: Beállítva');
+            } else {
+                statusEl.textContent = '❌ Nincs beállítva';
+                statusEl.style.color = '#721c24';
+                photoButtons.style.display = 'none';
+                debugLog('Token státusz: Nincs beállítva');
+            }
+        }
+
+        function manageToken() {
+            const currentToken = getToken();
+
+            if (currentToken) {
+                const action = confirm(
+                    '🔑 Token jelenleg beállítva.\n\n' +
+                    '✅ OK = Új token beállítása\n' +
+                    '❌ Mégse = Token törlése'
+                );
+
+                if (action) {
+                    promptForToken();
+                } else {
+                    if (confirm('Biztosan törölni szeretnéd a tokent?')) {
+                        clearToken();
+                        alert('✅ Token törölve!');
+                    }
+                }
+            } else {
+                promptForToken();
+            }
+        }
+
+        function promptForToken() {
+            const token = prompt(
+                '🔑 GitHub Personal Access Token:\n\n' +
+                '1. Menj: https://github.com/settings/tokens\n' +
+                '2. Generate new token (classic)\n' +
+                '3. Válaszd: repo (teljes)\n' +
+                '4. Másold ki a tokent\n\n' +
+                'Formátum: ghp_...'
+            );
+
+            if (token && token.trim()) {
+                if (token.startsWith('ghp_')) {
+                    setToken(token.trim());
+                    alert('✅ Token sikeresen beállítva!\n\nMost már fotózhatsz!');
+                } else {
+                    alert('❌ Érvénytelen token formátum!\n\nA tokennek ghp_-vel kell kezdődnie.');
+                }
+            }
+        }
+
+        // Térkép inicializálás
+        let map;
+        let photos = [];
+        let markers = [];
+        let wedges = [];
+        let currentLayer = 'all';
+        let infoWindows = [];
+
+        const CENTER = { lat: 47.248355, lng: 18.872946 };
+
+        function initMap() {
+            debugLog('Térkép inicializálás...');
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: CENTER,
+                zoom: 19,
+                mapTypeId: 'satellite'
+            });
+
+            new google.maps.Marker({
+                position: CENTER,
+                map: map,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 8,
+                    fillColor: '#ff0000',
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2
+                },
+                title: 'Telephely központ'
+            });
+
+            document.querySelectorAll('.layer-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentLayer = btn.dataset.layer;
+                    filterMarkers();
+                });
+            });
+
+            updateTokenStatus();
+            loadFromGitHub();
+            debugLog('Térkép inicializálás kész');
+        }
+
+        async function loadFromGitHub() {
+            debugLog('GitHub betöltés indítása...');
+            try {
+                const response = await fetch(
+                    `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/data.json`,
+                    {
+                        headers: {
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    }
+                );
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const content = JSON.parse(atob(data.content));
+
+                    for (const photo of content) {
+                        const imgPath = photo.type === 'general' 
+                            ? `images/altalanos/${photo.name}`
+                            : `images/hibak/${photo.name}`;
+
+                        const imgUrl = `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${imgPath}`;
+
+                        photos.push({
+                            ...photo,
+                            dataUrl: imgUrl,
+                            uploaded: true
+                        });
+                    }
+
+                    renderPhotos();
+                    updateStatus();
+                    debugLog(`${photos.length} fotó betöltve GitHub-ról`);
+                } else {
+                    debugLog('Nincs még data.json fájl');
+                }
+            } catch (error) {
+                debugLog('GitHub betöltési hiba: ' + error.message);
+            }
+        }
+
+        async function takePhoto(type) {
+            debugLog(`Fotózás indítása: ${type}`);
+
+            const token = getToken();
+            if (!token) {
+                alert('⚠️ Először állítsd be a GitHub tokent!\n\nKattints a "🔧 Token kezelése" gombra.');
+                debugLog('HIBA: Token nincs beállítva');
+                return;
+            }
+
+            debugLog('Token OK, kamera indítása...');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+
+                debugLog('Kamera hozzáférés OK');
+
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.style.position = 'fixed';
+                video.style.top = '0';
+                video.style.left = '0';
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.zIndex = '9999';
+                video.style.objectFit = 'cover';
+                document.body.appendChild(video);
+
+                const captureBtn = document.createElement('button');
+                captureBtn.textContent = '📷 Fotó';
+                captureBtn.style.position = 'fixed';
+                captureBtn.style.bottom = '30px';
+                captureBtn.style.left = '50%';
+                captureBtn.style.transform = 'translateX(-50%)';
+                captureBtn.style.padding = '20px 40px';
+                captureBtn.style.fontSize = '24px';
+                captureBtn.style.background = '#28a745';
+                captureBtn.style.color = 'white';
+                captureBtn.style.border = 'none';
+                captureBtn.style.borderRadius = '50px';
+                captureBtn.style.zIndex = '10000';
+                captureBtn.style.cursor = 'pointer';
+                document.body.appendChild(captureBtn);
+
+                const closeBtn = document.createElement('button');
+                closeBtn.textContent = '✖';
+                closeBtn.style.position = 'fixed';
+                closeBtn.style.top = '20px';
+                closeBtn.style.right = '20px';
+                closeBtn.style.padding = '15px 20px';
+                closeBtn.style.fontSize = '20px';
+                closeBtn.style.background = '#dc3545';
+                closeBtn.style.color = 'white';
+                closeBtn.style.border = 'none';
+                closeBtn.style.borderRadius = '50%';
+                closeBtn.style.zIndex = '10000';
+                closeBtn.style.cursor = 'pointer';
+                document.body.appendChild(closeBtn);
+
+                closeBtn.onclick = () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    video.remove();
+                    captureBtn.remove();
+                    closeBtn.remove();
+                    debugLog('Fotózás megszakítva');
+                };
+
+                captureBtn.onclick = async () => {
+                    debugLog('Fotó készítése...');
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0);
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+
+                    stream.getTracks().forEach(track => track.stop());
+                    video.remove();
+                    captureBtn.remove();
+                    closeBtn.remove();
+
+                    debugLog('Fotó kész, GPS lekérése...');
+
+                    // GPS lekérése - JAVÍTOTT VERZIÓ
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            debugLog(`GPS OK: ${position.coords.latitude}, ${position.coords.longitude}`);
+
+                            const coords = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            };
+
+                            let direction = 0;
+                            if (window.DeviceOrientationEvent) {
+                                window.addEventListener('deviceorientation', (event) => {
+                                    direction = event.alpha || 0;
+                                });
+                            }
+
+                            debugLog('Leírás kérése...');
+                            const description = prompt(
+                                type === 'error' 
+                                    ? '🔴 Hiba leírása (pl: Gép X hibakódja: E123):' 
+                                    : '📝 Leírás (opcionális):'
+                            ) || '';
+
+                            debugLog(`Leírás: "${description}"`);
+
+                            const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+                            const filename = `foto_${new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19)}.jpg`;
+
+                            const photo = {
+                                name: filename,
+                                type: type,
+                                coords: coords,
+                                direction: Math.round(direction),
+                                description: description,
+                                timestamp: timestamp,
+                                dataUrl: dataUrl,
+                                uploaded: false
+                            };
+
+                            photos.push(photo);
+                            renderPhotos();
+                            updateStatus();
+
+                            debugLog('Feltöltés indítása GitHub-ra...');
+
+                            // JAVÍTÁS: Explicit hívás Promise-szal
+                            uploadToGitHub(photo).then(() => {
+                                debugLog('Feltöltés befejezve!');
+                            }).catch((error) => {
+                                debugLog(`Feltöltési hiba: ${error.message}`);
+                            });
+                        },
+                        (error) => {
+                            debugLog(`GPS HIBA: ${error.code} - ${error.message}`);
+                            alert('❌ GPS hiba: ' + error.message);
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        }
+                    );
+                };
+
+            } catch (error) {
+                debugLog(`Kamera hiba: ${error.message}`);
+                alert('❌ Kamera hozzáférés megtagadva: ' + error.message);
+            }
+        }
+
+        async function uploadToGitHub(photo) {
+            document.getElementById('loading').style.display = 'block';
+            debugLog('uploadToGitHub() függvény meghívva');
+
+            try {
+                const token = getToken();
+
+                const imagePath = photo.type === 'general' 
+                    ? `images/altalanos/${photo.name}`
+                    : `images/hibak/${photo.name}`;
+
+                const imageContent = photo.dataUrl.split(',')[1];
+
+                debugLog(`Kép feltöltése: ${imagePath}`);
+
+                const imageResponse = await fetch(
+                    `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${imagePath}`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: `Fotó feltöltése: ${photo.name}`,
+                            content: imageContent,
+                            branch: GITHUB_CONFIG.branch
+                        })
+                    }
+                );
+
+                if (!imageResponse.ok) {
+                    const errorText = await imageResponse.text();
+                    debugLog(`Kép feltöltési hiba: ${imageResponse.status} - ${errorText}`);
+                    throw new Error(`Kép feltöltési hiba: ${imageResponse.status}`);
+                }
+
+                debugLog('Kép feltöltve, data.json frissítése...');
+                await updateDataJson();
+
+                photo.uploaded = true;
+                photo.dataUrl = `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${imagePath}`;
+
+                renderPhotos();
+
+                debugLog('Feltöltés sikeres!');
+                alert('✅ Fotó sikeresen feltöltve GitHub-ra!');
+
+            } catch (error) {
+                debugLog(`Feltöltési hiba: ${error.message}`);
+                alert('❌ Feltöltési hiba: ' + error.message);
+                console.error(error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        async function updateDataJson() {
+            try {
+                const token = getToken();
+
+                let sha = null;
+                try {
+                    const response = await fetch(
+                        `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/data.json`,
+                        {
+                            headers: {
+                                'Authorization': `token ${token}`,
+                                'Accept': 'application/vnd.github.v3+json'
+                            }
+                        }
+                    );
+                    if (response.ok) {
+                        const data = await response.json();
+                        sha = data.sha;
+                        debugLog('data.json SHA: ' + sha);
+                    }
+                } catch (e) {
+                    debugLog('data.json még nem létezik');
+                }
+
+                const photoData = photos.map(p => ({
+                    name: p.name,
+                    type: p.type,
+                    coords: p.coords,
+                    direction: p.direction,
+                    description: p.description,
+                    timestamp: p.timestamp
+                }));
+
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(photoData, null, 2))));
+
+                const body = {
+                    message: 'Fotó adatok frissítése',
+                    content: content,
+                    branch: GITHUB_CONFIG.branch
+                };
+
+                if (sha) {
+                    body.sha = sha;
+                }
+
+                debugLog('data.json feltöltése...');
+
+                await fetch(
+                    `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/data.json`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(body)
+                    }
+                );
+
+                debugLog('data.json frissítve');
+
+            } catch (error) {
+                debugLog(`data.json frissítési hiba: ${error.message}`);
+                console.error('data.json frissítési hiba:', error);
+            }
+        }
+
+        function renderPhotos() {
+            markers.forEach(m => m.setMap(null));
+            wedges.forEach(w => w.setMap(null));
+            infoWindows.forEach(iw => iw.close());
+            markers = [];
+            wedges = [];
+            infoWindows = [];
+
+            photos.forEach((photo, index) => {
+                const color = photo.type === 'general' ? '#007bff' : '#dc3545';
+                const wedgeColor = photo.type === 'general' ? '#FFD700' : '#ff6b6b';
+
+                const marker = new google.maps.Marker({
+                    position: photo.coords,
+                    map: map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: color,
+                        fillOpacity: 1,
+                        strokeColor: '#ffffff',
+                        strokeWeight: 2
+                    },
+                    draggable: !photo.uploaded,
+                    title: photo.name
+                });
+
+                marker.photoIndex = index;
+                marker.photoType = photo.type;
+                markers.push(marker);
+
+                const wedge = createWedge(photo.coords, photo.direction, wedgeColor);
+                wedge.photoIndex = index;
+                wedge.photoType = photo.type;
+                wedges.push(wedge);
+
+                if (!photo.uploaded) {
+                    marker.addListener('dragend', () => {
+                        photos[index].coords = {
+                            lat: marker.getPosition().lat(),
+                            lng: marker.getPosition().lng()
+                        };
+                        wedges[index].setMap(null);
+                        wedges[index] = createWedge(photos[index].coords, photos[index].direction, wedgeColor);
+                        wedges[index].photoIndex = index;
+                        wedges[index].photoType = photo.type;
+                        filterMarkers();
+                    });
+                }
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: createInfoWindowContent(photo, index)
+                });
+                infoWindows.push(infoWindow);
+
+                marker.addListener('click', () => {
+                    infoWindows.forEach(iw => iw.close());
+                    infoWindow.open(map, marker);
+                });
+            });
+
+            filterMarkers();
+            renderPhotoList();
+        }
+
+        function createInfoWindowContent(photo, index) {
+            const typeLabel = photo.type === 'general' ? '🔵 ÁLTALÁNOS' : '🔴 HIBA';
+            const typeBadge = photo.type === 'general' ? 'general' : 'error';
+
+            return `
+                <div style="max-width: 300px;">
+                    <img src="${photo.dataUrl}" style="width: 100%; border-radius: 8px; margin-bottom: 10px;">
+                    <div style="font-weight: bold; margin-bottom: 5px;">
+                        <span class="badge ${typeBadge}">${typeLabel}</span>
+                    </div>
+                    ${photo.description ? `<div style="margin-bottom: 5px;">📝 ${photo.description}</div>` : ''}
+                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">📅 ${photo.timestamp}</div>
+                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">📍 ${photo.coords.lat.toFixed(6)}, ${photo.coords.lng.toFixed(6)}</div>
+                    ${!photo.uploaded ? `
+                    <div style="margin: 10px 0;">
+                        <label style="display: block; margin-bottom: 5px;">🧭 Fotózási irány: <span id="direction-${index}">${photo.direction}°</span></label>
+                        <input type="range" min="0" max="360" value="${photo.direction}" 
+                               style="width: 100%;" 
+                               oninput="updatePhotoDirectionLive(${index}, this.value)">
+                    </div>
+                    <button onclick="deletePhoto(${index})" 
+                            style="width: 100%; padding: 8px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        🗑️ Törlés
+                    </button>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function createWedge(center, direction, color) {
+            const radius = 9;
+            const angle = 45;
+            const points = [center];
+
+            for (let i = -angle / 2; i <= angle / 2; i += 5) {
+                const heading = (direction + i + 360) % 360;
+                const point = google.maps.geometry.spherical.computeOffset(
+                    new google.maps.LatLng(center.lat, center.lng),
+                    radius,
+                    heading
+                );
+                points.push({ lat: point.lat(), lng: point.lng() });
+            }
+            points.push(center);
+
+            return new google.maps.Polygon({
+                paths: points,
+                strokeColor: color,
+                strokeOpacity: 0.6,
+                strokeWeight: 1,
+                fillColor: color,
+                fillOpacity: 0.2,
+                map: map
+            });
+        }
+
+        function updatePhotoDirectionLive(index, value) {
+            photos[index].direction = parseInt(value);
+            document.getElementById(`direction-${index}`).textContent = value + '°';
+
+            wedges[index].setMap(null);
+            const color = photos[index].type === 'general' ? '#FFD700' : '#ff6b6b';
+            wedges[index] = createWedge(photos[index].coords, photos[index].direction, color);
+            wedges[index].photoIndex = index;
+            wedges[index].photoType = photos[index].type;
+            filterMarkers();
+        }
+
+        function deletePhoto(index) {
+            if (confirm('Biztosan törölni szeretnéd ezt a fotót?')) {
+                photos.splice(index, 1);
+                renderPhotos();
+                updateStatus();
+            }
+        }
+
+        function filterMarkers() {
+            markers.forEach((marker, i) => {
+                const show = currentLayer === 'all' || 
+                             (currentLayer === 'general' && marker.photoType === 'general') ||
+                             (currentLayer === 'error' && marker.photoType === 'error');
+                marker.setVisible(show);
+                wedges[i].setVisible(show);
+            });
+        }
+
+        function renderPhotoList() {
+            const list = document.getElementById('photoList');
+            list.innerHTML = '<h3 style="margin-bottom: 10px;">📸 Fotók:</h3>';
+
+            photos.forEach((photo, index) => {
+                const typeClass = photo.type === 'general' ? 'general' : 'error';
+                const typeLabel = photo.type === 'general' ? '🔵' : '🔴';
+
+                const item = document.createElement('div');
+                item.className = `photo-item ${typeClass}`;
+                item.innerHTML = `
+                    <div class="photo-item-name">${typeLabel} ${photo.name}</div>
+                    ${photo.description ? `<div class="photo-item-desc">📝 ${photo.description}</div>` : ''}
+                    <div class="photo-item-desc">📅 ${photo.timestamp}</div>
+                `;
+                item.onclick = () => {
+                    map.setCenter(photo.coords);
+                    map.setZoom(21);
+                    google.maps.event.trigger(markers[index], 'click');
+                };
+                list.appendChild(item);
+            });
+        }
+
+        function updateStatus() {
+            const generalCount = photos.filter(p => p.type === 'general').length;
+            const errorCount = photos.filter(p => p.type === 'error').length;
+            document.getElementById('status').textContent = 
+                `📷 ${photos.length} fotó (🔵 ${generalCount} | 🔴 ${errorCount})`;
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
