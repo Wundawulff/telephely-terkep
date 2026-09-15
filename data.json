@@ -20,5 +20,16 @@
     "direction": 0,
     "description": "kep",
     "timestamp": "2026-08-24 13:36:06"
+  },
+  {
+    "name": "foto_2026-09-15T10-51-47.jpg",
+    "type": "error",
+    "coords": {
+      "lat": 47.2491215,
+      "lng": 18.8735613
+    },
+    "direction": 0,
+    "description": "elektromos kamion úthiba",
+    "timestamp": "2026-09-15 10:51:47"
   }
 ]
