@@ -29,7 +29,7 @@
       "lng": 18.8735613
     },
     "direction": 0,
-    "description": "elektromos kamion ÃÂºthiba",
+    "description": "elektromos kamion ÃÂÃÂºthiba",
     "timestamp": "2026-09-15 10:51:47"
   },
   {
@@ -40,7 +40,18 @@
       "lng": 18.87371408591386
     },
     "direction": 0,
-    "description": "SzikkasztÃ³ bagy nem?",
+    "description": "SzikkasztÃÂ³ bagy nem?",
     "timestamp": "2026-09-15 11:21:51"
+  },
+  {
+    "name": "foto_2026-09-17T08-45-52.jpg",
+    "type": "general",
+    "coords": {
+      "lat": 47.248651723781734,
+      "lng": 18.87371408591386
+    },
+    "direction": 0,
+    "description": "Akna1",
+    "timestamp": "2026-09-17 08:45:52"
   }
 ]
