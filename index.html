@@ -1088,7 +1088,7 @@
             .then(response => response.ok ? response.json() : null)
             .then(data => {
                 if (data) {
-                    photos = JSON.parse(atob(data.content));
+                    photos = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                     log(`${photos.length} fotó betöltve`);
                     if (lastVisitTimestamp) {
                         const lastVisit = parseInt(lastVisitTimestamp);
@@ -1745,7 +1745,7 @@
             .then(r => r.ok ? r.json() : null)
             .then(d => {
                 if (d) {
-                    zones = JSON.parse(atob(d.content));
+                    zones = JSON.parse(decodeURIComponent(escape(atob(d.content))));
                     renderZones();
                     updateZoneList();
                     log(`🗺️ ${zones.length} zóna betöltve`);
