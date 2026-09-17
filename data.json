@@ -33,17 +33,6 @@
     "timestamp": "2026-09-15 10:51:47"
   },
   {
-    "name": "foto_2026-09-15T11-21-51.jpg",
-    "type": "error",
-    "coords": {
-      "lat": 47.248651723781734,
-      "lng": 18.87371408591386
-    },
-    "direction": 0,
-    "description": "SzikkasztÃÂ³ bagy nem?",
-    "timestamp": "2026-09-15 11:21:51"
-  },
-  {
     "name": "foto_2026-09-17T08-45-52.jpg",
     "type": "general",
     "coords": {
